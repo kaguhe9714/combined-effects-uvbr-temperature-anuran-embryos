@@ -1,0 +1,172 @@
+# mortality_plots.R
+# UVBR + temperature effects on embryo survival
+# ONLY FIGURES
+# Choose: "color" or "bw"
+
+# rm(list = ls())   # déjalo comentado si ya tienes emm_cells_df en memoria
+
+# =========================
+# 1. PACKAGES
+# =========================
+required_packages <- c("dplyr", "ggplot2")
+
+to_install <- required_packages[!required_packages %in% installed.packages()[, "Package"]]
+if (length(to_install) > 0) {
+  install.packages(to_install)
+}
+
+invisible(lapply(required_packages, library, character.only = TRUE))
+
+# =========================
+# 2. FIGURE MODE
+# =========================
+modo_figura <- "bw"   # cambiar a "bw" para blanco y negro
+
+# =========================
+# 3. LOAD DATA
+# =========================
+ruta <- "C:/Users/KGH/OneDrive - ut.edu.co/DCB/Paper UVB+temp/Herpetological Conservation and Biology/New submission/mortality_counts.csv"
+
+if (!file.exists(ruta)) {
+  stop("The file was not found. Please check the path in 'ruta'.")
+}
+
+mortality <- read.csv(ruta, stringsAsFactors = FALSE)
+
+# =========================
+# 4. PREPARE VARIABLES
+# =========================
+mortality <- mortality %>%
+  mutate(
+    species = factor(
+      species,
+      levels = c(
+        "Boana_platanera",
+        "Engystomops_pustulosus",
+        "Rhinella_horribilis"
+      )
+    ),
+    uvbr = factor(uvbr, levels = c(0, 25, 50)),
+    temperature = factor(temperature, levels = c(23, 28, 33)),
+    replicate = factor(replicate),
+    clutch = factor(clutch),
+    survival = 1 - mortality
+  )
+
+# =========================
+# 5. SUMMARY FOR OBSERVED PLOT
+# =========================
+summary_mort <- mortality %>%
+  group_by(species, uvbr, temperature) %>%
+  summarise(
+    n = n(),
+    dead = sum(mortality),
+    alive = sum(survival),
+    mort_rate = mean(mortality),
+    surv_rate = mean(survival),
+    .groups = "drop"
+  )
+
+# =========================
+# 6. FILL SCALES
+# =========================
+if (modo_figura == "color") {
+  
+  escala_fill <- scale_fill_manual(
+    values = c(
+      "0"  = "#F0E442",   # amarillo
+      "25" = "#0066CC",   # azul
+      "50" = "#B30000"    # rojo
+    ),
+    name = "UVBR"
+  )
+  
+} else if (modo_figura == "bw") {
+  
+  escala_fill <- scale_fill_manual(
+    values = c(
+      "0"  = "white",
+      "25" = "grey70",
+      "50" = "black"
+    ),
+    name = "UVBR"
+  )
+  
+} else {
+  stop("modo_figura must be either 'color' or 'bw'")
+}
+
+# =========================
+# 7. OBSERVED MORTALITY PLOT
+# =========================
+fig_observed <- ggplot(
+  summary_mort,
+  aes(x = temperature, y = mort_rate, fill = uvbr)
+) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7,
+    color = "black"
+  ) +
+  facet_wrap(~ species) +
+  escala_fill +
+  scale_y_continuous(
+    limits = c(0, 1),
+    expand = expansion(mult = c(0, 0.02))
+  ) +
+  labs(
+    x = "Temperature (°C)",
+    y = "Observed mortality proportion"
+  ) +
+  theme_classic() +
+  theme(
+    strip.text = element_text(face = "italic"),
+    legend.position = "right"
+  )
+
+print(fig_observed)
+
+# =========================
+# 8. PREDICTED MORTALITY PLOT
+# =========================
+# Este bloque funciona solo si emm_cells_df ya existe
+# (por ejemplo, después de correr el script estadístico)
+
+if (exists("emm_cells_df")) {
+  
+  fig_predicted <- ggplot(
+    emm_cells_df,
+    aes(x = temperature, y = pred_mortality, fill = uvbr)
+  ) +
+    geom_col(
+      position = position_dodge(width = 0.8),
+      width = 0.7,
+      color = "black"
+    ) +
+    geom_errorbar(
+      aes(ymin = mort_LCL, ymax = mort_UCL),
+      position = position_dodge(width = 0.8),
+      width = 0.2
+    ) +
+    facet_wrap(~ species) +
+    escala_fill +
+    scale_y_continuous(
+      limits = c(0, 1),
+      expand = expansion(mult = c(0, 0.02))
+    ) +
+    labs(
+      x = "Temperature (°C)",
+      y = "Predicted mortality probability"
+    ) +
+    theme_classic() +
+    theme(
+      strip.text = element_text(face = "italic"),
+      legend.position = "right"
+    )
+  
+  print(fig_predicted)
+  
+} else {
+  message("emm_cells_df was not found. Run mortality_statistics.R first if you want the predicted mortality plot.")
+}
+

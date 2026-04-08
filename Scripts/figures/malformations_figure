@@ -1,0 +1,282 @@
+# malformations_figures.R
+# UVBR + temperature effects on embryo malformations
+# Two figures:
+# 1) observed percentages
+# 2) predicted probabilities from the model
+
+
+# =========================
+# 1. PACKAGES
+# =========================
+# malformations_figures.R
+# UVBR + temperature effects on embryo malformations
+# Figure 1 = observed malformations
+# Figure 2 = predicted malformation probability
+
+
+# =========================
+# 1. PACKAGES
+# =========================
+required_packages <- c("dplyr", "ggplot2", "lme4", "emmeans")
+
+to_install <- required_packages[!required_packages %in% installed.packages()[, "Package"]]
+if (length(to_install) > 0) {
+  install.packages(to_install)
+}
+
+invisible(lapply(required_packages, library, character.only = TRUE))
+
+
+# =========================
+# 2. LOAD DATA
+# =========================
+ruta <- "C:/Users/KGH/OneDrive - ut.edu.co/DCB/Paper UVB+temp/Herpetological Conservation and Biology/New submission/malformations_counts.csv"
+
+file.exists(ruta)
+
+if (!file.exists(ruta)) {
+  stop("The file was not found. Please check the path in 'ruta'.")
+}
+
+malf <- read.csv(ruta, stringsAsFactors = FALSE)
+
+
+# =========================
+# 3. PREPARE VARIABLES
+# =========================
+malf <- malf |>
+  dplyr::mutate(
+    species = factor(
+      species,
+      levels = c(
+        "Boana_platanera",
+        "Engystomops_pustulosus",
+        "Rhinella_horribilis"
+      )
+    ),
+    uvbr = factor(uvbr, levels = c(0, 25, 50)),
+    temperature = factor(temperature, levels = c(23, 28, 33)),
+    replicate = factor(replicate),
+    clutch = factor(clutch),
+    malformation = as.integer(malformation)
+  )
+
+str(malf)
+
+
+# =========================
+# 4. STYLE OPTION
+# =========================
+plot_style <- "bw"   # change to "bw" if needed
+
+
+# =========================
+# 5. LABELS
+# =========================
+species_labels <- c(
+  "Boana_platanera" = "italic('Boana platanera')",
+  "Engystomops_pustulosus" = "italic('Engystomops pustulosus')",
+  "Rhinella_horribilis" = "italic('Rhinella horribilis')"
+)
+
+
+# =========================
+# 6. FILL SCALES
+# =========================
+if (plot_style == "color") {
+  
+  fill_scale_obs <- scale_fill_manual(
+    values = c(
+      "0"  = "#F1C40F",   # yellow
+      "25" = "#156EC8",   # blue
+      "50" = "#C00000"    # blood red
+    ),
+    breaks = c("0", "25", "50"),
+    labels = c("0", "25", "50"),
+    name = "UVBR"
+  )
+  
+  fill_scale_pred <- scale_fill_manual(
+    values = c(
+      "25" = "#156EC8",
+      "50" = "#C00000"
+    ),
+    breaks = c("25", "50"),
+    labels = c("25", "50"),
+    name = "UVBR"
+  )
+  
+} else if (plot_style == "bw") {
+  
+  fill_scale_obs <- scale_fill_manual(
+    values = c(
+      "0"  = "white",
+      "25" = "grey65",
+      "50" = "black"
+    ),
+    breaks = c("0", "25", "50"),
+    labels = c("0", "25", "50"),
+    name = "UVBR"
+  )
+  
+  fill_scale_pred <- scale_fill_manual(
+    values = c(
+      "25" = "grey65",
+      "50" = "black"
+    ),
+    breaks = c("25", "50"),
+    labels = c("25", "50"),
+    name = "UVBR"
+  )
+  
+} else {
+  stop("plot_style must be either 'color' or 'bw'")
+}
+
+
+# =========================
+# 7. COMMON THEME
+# =========================
+theme_malf <- theme_classic(base_size = 12) +
+  theme(
+    strip.background = element_rect(fill = "white", color = "black", linewidth = 0.8),
+    strip.text = element_text(size = 11),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(color = "black", size = 12),
+    legend.position = "right",
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 10)
+  )
+
+
+# =========================
+# 8. OBSERVED DATA SUMMARY
+# =========================
+summary_malf <- malf |>
+  dplyr::group_by(species, temperature, uvbr) |>
+  dplyr::summarise(
+    malformed = sum(malformation),
+    n = dplyr::n(),
+    malf_rate = malformed / n,
+    .groups = "drop"
+  )
+
+
+# =========================
+# 9. FIGURE 1: OBSERVED MALFORMATIONS
+#    (NO ERROR BARS, like your mortality figure)
+# =========================
+pd_obs <- position_dodge(width = 0.82)
+
+fig_malf_obs <- ggplot(
+  summary_malf,
+  aes(x = temperature, y = malf_rate, fill = uvbr)
+) +
+  geom_col(
+    position = pd_obs,
+    width = 0.75,
+    color = "black"
+  ) +
+  facet_wrap(
+    ~ species,
+    nrow = 1,
+    labeller = as_labeller(species_labels, label_parsed)
+  ) +
+  fill_scale_obs +
+  scale_y_continuous(
+    limits = c(0, 1.02),
+    breaks = c(0, 0.25, 0.50, 0.75, 1.00),
+    expand = expansion(mult = c(0, 0))
+  ) +
+  labs(
+    x = "Temperature (°C)",
+    y = "Observed malformation proportion"
+  ) +
+  theme_malf
+
+fig_malf_obs
+
+
+# =========================
+# 10. DATA FOR INFERENTIAL MODEL
+#     UVBR = 0 excluded from the model
+# =========================
+malf_model <- malf |>
+  dplyr::filter(uvbr != "0") |>
+  droplevels()
+
+levels(malf_model$uvbr)
+
+
+# =========================
+# 11. FINAL MODEL FOR PREDICTED FIGURE
+#     Using GLM, as in your malformation analysis
+# =========================
+model_malf_glm <- glm(
+  malformation ~ species * uvbr * temperature,
+  family = binomial(link = "logit"),
+  data = malf_model
+)
+
+summary(model_malf_glm)
+
+
+# =========================
+# 12. PREDICTED PROBABILITIES
+# =========================
+emm_malf_cells <- emmeans(
+  model_malf_glm,
+  ~ species * uvbr * temperature,
+  type = "response"
+)
+
+emm_malf_cells_df <- as.data.frame(emm_malf_cells)
+
+emm_malf_cells_df <- emm_malf_cells_df |>
+  dplyr::mutate(
+    prob_plot = prob,
+    lcl_plot = asymp.LCL,
+    ucl_plot = asymp.UCL
+  )
+
+
+# =========================
+# 13. FIGURE 2: PREDICTED MALFORMATIONS
+#     (WITH ERROR BARS, like your mortality figure)
+# =========================
+pd_pred <- position_dodge(width = 0.82)
+
+fig_malf_pred <- ggplot(
+  emm_malf_cells_df,
+  aes(x = temperature, y = prob_plot, fill = uvbr)
+) +
+  geom_col(
+    position = pd_pred,
+    width = 0.75,
+    color = "black"
+  ) +
+  geom_errorbar(
+    aes(ymin = lcl_plot, ymax = ucl_plot),
+    position = pd_pred,
+    width = 0.18,
+    linewidth = 0.5
+  ) +
+  facet_wrap(
+    ~ species,
+    nrow = 1,
+    labeller = as_labeller(species_labels, label_parsed)
+  ) +
+  fill_scale_pred +
+  scale_y_continuous(
+    limits = c(0, 1.02),
+    breaks = c(0, 0.25, 0.50, 0.75, 1.00),
+    expand = expansion(mult = c(0, 0))
+  ) +
+  labs(
+    x = "Temperature (°C)",
+    y = "Predicted malformation probability"
+  ) +
+  theme_malf
+
+fig_malf_pred
+

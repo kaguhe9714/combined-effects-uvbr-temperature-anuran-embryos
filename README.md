@@ -46,8 +46,10 @@ Two response variables were analyzed:
 `Scripts/stats/mortality_analysis.R`  
 Statistical analyses for embryo survival.
 
-`Scripts/stats/malformations_analysis.R`  
-Statistical analyses for embryo malformations.
+### Exploratory analyses
+
+`Scripts/exploratory/malformations_exploratory_not_reported.R`  
+Exploratory analysis for embryo malformations. This model was not used for manuscript inference because the number of surviving embryos available for malformation assessment was highly unbalanced among treatments/species. Malformations are reported descriptively in the manuscript.
 
 ### Figures
 
@@ -63,7 +65,7 @@ Scripts for observed and predicted malformation figures.
 Data used for survival analyses.
 
 `Data/malformations_counts.csv`  
-Data used for malformation analyses.
+Data used to summarize malformations descriptively and to generate the malformation figure.
 
 ## Requirements
 

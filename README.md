@@ -9,16 +9,22 @@ Universidad del Tolima
 
 ## Repository contents
 
-Scripts/  
-&nbsp;&nbsp;stats/  
-&nbsp;&nbsp;&nbsp;&nbsp;mortality_analysis.R  
-&nbsp;&nbsp;&nbsp;&nbsp;malformations_analysis.R  
-&nbsp;&nbsp;figures/  
-&nbsp;&nbsp;&nbsp;&nbsp;mortality_figures.R  
-&nbsp;&nbsp;&nbsp;&nbsp;malformations_figures.R  
-Data/  
-&nbsp;&nbsp;mortality_counts.csv  
-&nbsp;&nbsp;malformations_counts.csv  
+```text
+Scripts/
+  stats/
+    mortality_analysis.R
+  exploratory/
+    malformations_exploratory_not_reported.R
+  figures/
+    mortality_figures.R
+    malformations_figures.R
+
+Data/
+  mortality_counts.csv
+  malformations_counts.csv
+```
+
+Note: The malformations script is provided as an exploratory analysis only. This model was not used for manuscript inference because the number of surviving embryos available for malformation assessment was highly unbalanced among treatments/species. Malformations are reported descriptively in the manuscript.
 
 ## Study overview
 

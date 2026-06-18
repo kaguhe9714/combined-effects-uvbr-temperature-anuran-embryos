@@ -171,7 +171,7 @@ emm_malf_uv <- emmeans(
 
 emm_malf_uv
 
-malf_uv_pairs <- pairs(emm_malf_uv, adjust = "holm")
+malf_uv_pairs <- pairs(emm_malf_uv, adjust = "tukey")
 malf_uv_pairs
 
 

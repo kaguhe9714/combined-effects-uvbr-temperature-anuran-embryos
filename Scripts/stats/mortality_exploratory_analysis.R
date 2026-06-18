@@ -1,6 +1,12 @@
-# mortality_statistics.R
-# UVBR + temperature effects on embryo survival
-# ONLY STATISTICAL ANALYSES
+# malformations_exploratory_not_reported.R
+# UVBR + temperature effects on embryo malformations
+#
+# Exploratory analysis only.
+# This model was not used for manuscript inference because the number of
+# surviving embryos available for malformation assessment was highly
+# unbalanced among treatments/species.
+#
+# The manuscript reports malformations descriptively only.
 
 rm(list = ls())
 
@@ -171,7 +177,7 @@ emm_uv <- emmeans(
 emm_uv
 
 uv_pairs <- as.data.frame(
-  pairs(emm_uv, adjust = "holm")
+  pairs(emm_uv, adjust = "tukey")
 )
 
 uv_pairs
